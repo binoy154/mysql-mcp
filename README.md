@@ -81,11 +81,11 @@ Before setting up this MySQL MCP server, ensure you have:
            "MYSQL_STAGING_PASSWORD": "staging_pw",
            "MYSQL_STAGING_DATABASE": "staging_db",
 
-           "MYSQL_PRODUCTION_HOST": "slave.db.example.com",
-           "MYSQL_PRODUCTION_PORT": "3306",
-           "MYSQL_PRODUCTION_USER": "readonly_user",
-           "MYSQL_PRODUCTION_PASSWORD": "readonly_pw",
-           "MYSQL_PRODUCTION_DATABASE": "prod_db"
+           "MYSQL_PREPRODUCTION_HOST": "preprod-db.example.com",
+           "MYSQL_PREPRODUCTION_PORT": "3306",
+           "MYSQL_PREPRODUCTION_USER": "preprod_user",
+           "MYSQL_PREPRODUCTION_PASSWORD": "preprod_pw",
+           "MYSQL_PREPRODUCTION_DATABASE": "preprod_db"
          }
        }
      }
