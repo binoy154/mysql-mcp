@@ -18,23 +18,38 @@ Before setting up this MySQL MCP server, ensure you have:
 2. **MySQL Database** - Either local or remote MySQL server access
 3. **Cursor IDE** - For MCP integration
 
+> **📁 Repository Note:** This repository follows Node.js best practices by excluding `node_modules/` and `dist/` folders. You'll generate these locally after cloning.
+
 ## Quick Setup
 
-1. **Install dependencies:**
+### 🚀 First Time Setup (After Cloning)
+
+**Important:** This repository does not include `node_modules/` or `dist/` folders to keep it lightweight. You'll need to generate them:
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/mySqlMcp.git
+   cd mySqlMcp
+   ```
+
+2. **Install dependencies:**
    ```bash
    npm install
    ```
-
-2. **Set up environment variables:**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your MySQL credentials
-   ```
+   *This will create the `node_modules/` folder with all required packages.*
 
 3. **Build the project:**
    ```bash
    npm run build
    ```
+   *This will create the `dist/` folder with compiled JavaScript files.*
+
+4. **Set up environment variables (optional):**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your MySQL credentials
+   ```
+   *Note: You can also configure credentials directly in Cursor MCP settings.*
 
 4. **Configure Cursor MCP (multi-environment):**
    A single MCP server instance can now switch between **local**, **staging** and **production** environments at runtime.  Supply their credentials through environment variables:
@@ -49,8 +64,8 @@ Before setting up this MySQL MCP server, ensure you have:
            "MYSQL_LOCAL_HOST": "localhost",
            "MYSQL_LOCAL_PORT": "3306",
            "MYSQL_LOCAL_USER": "root",
-           "MYSQL_LOCAL_PASSWORD": "admin",
-           "MYSQL_LOCAL_DATABASE": "my_local_db",
+           "MYSQL_LOCAL_PASSWORD": "localPassword",
+           "MYSQL_LOCAL_DATABASE": "localDatabase",
 
            "MYSQL_STAGING_HOST": "staging.db.example.com",
            "MYSQL_STAGING_PORT": "3306",
@@ -175,23 +190,35 @@ Simply copying the project folder to another computer **will not work** without 
 6. **Configure Database Credentials:**
    - Update environment variables or Cursor MCP configuration with the correct database connection details for the new environment
 
-### 📁 What to Copy vs. What to Rebuild
+### 📁 What's Included vs. What You Need to Build
 
-**✅ Copy these:**
+**✅ Included in this repository:**
 - Source code (`src/` folder)
 - Configuration files (`package.json`, `tsconfig.json`, `README.md`)
 - Documentation files
+- `.gitignore` (protects against accidentally committing large folders)
 
-**❌ Don't copy these (rebuild instead):**
+**🔨 What you need to build after cloning:**
 - `node_modules/` folder → Run `npm install`
 - `dist/` folder → Run `npm run build`
 
-**⚙️ Customize for each environment:**
+**⚙️ What you need to customize:**
 - Database credentials (host, port, username, password)
 - File paths in Cursor MCP configuration
 - Environment-specific settings
 
+**💡 Why this approach?**
+- Keeps repository lightweight (MB instead of GB)
+- Avoids platform-specific dependency issues
+- Follows Node.js best practices
+
 ## Troubleshooting
+
+### Setup Issues
+- **"Cannot find module" errors**: Run `npm install` to install dependencies
+- **"Cannot find dist/index.js"**: Run `npm run build` to compile TypeScript
+- **Missing `node_modules/` folder**: This is normal! Run `npm install` to create it
+- **Missing `dist/` folder**: This is normal! Run `npm run build` to create it
 
 ### Connection Issues
 - Verify MySQL server is running
