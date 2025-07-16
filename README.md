@@ -28,9 +28,14 @@ Before setting up this MySQL MCP server, ensure you have:
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/YOUR_USERNAME/mySqlMcp.git
-   cd mySqlMcp
+   git clone https://github.com/binoy154/mysql-mcp.git
+   cd mysql-mcp
    ```
+   
+   **⚠️ Important Path Considerations:**
+   - **Note the absolute path** where you clone this repository (e.g., `C:/Projects/mysql-mcp` or `E:/mysql-mcp`)
+   - You'll need this **exact path** for Cursor MCP configuration later
+   - The built files will be at `YOUR_PATH/dist/index.js`
 
 2. **Install dependencies:**
    ```bash
@@ -51,15 +56,18 @@ Before setting up this MySQL MCP server, ensure you have:
    ```
    *Note: You can also configure credentials directly in Cursor MCP settings.*
 
-4. **Configure Cursor MCP (multi-environment):**
-   A single MCP server instance can now switch between **local**, **staging** and **production** environments at runtime.  Supply their credentials through environment variables:
+5. **Configure Cursor MCP:**
+   
+   **🔧 IMPORTANT: Update the file path below with your actual clone location!**
+   
+   A single MCP server instance can switch between **local**, **staging** and **production** environments at runtime. Supply their credentials through environment variables:
 
    ```json
    {
      "mcpServers": {
        "mysql": {
          "command": "node",
-         "args": ["E:/mySqlMcp/dist/index.js"],
+         "args": ["YOUR_ABSOLUTE_PATH/mysql-mcp/dist/index.js"],
          "env": {
            "MYSQL_LOCAL_HOST": "localhost",
            "MYSQL_LOCAL_PORT": "3306",
@@ -83,6 +91,13 @@ Before setting up this MySQL MCP server, ensure you have:
      }
    }
    ```
+   
+   **📝 Path Examples - Replace `YOUR_ABSOLUTE_PATH/mysql-mcp` with:**
+   - Windows: `"C:/Projects/mysql-mcp/dist/index.js"`
+   - Windows (E drive): `"E:/mysql-mcp/dist/index.js"`
+   - Mac/Linux: `"/home/username/mysql-mcp/dist/index.js"`
+   
+   **⚠️ Critical:** Use forward slashes (`/`) even on Windows, and ensure the path points to where you actually cloned the repository.
 
    **Why a slave?**  The production credentials should point to a *read-only slave* or replica to guarantee safety (the server enforces read-only at the code level too).
 
@@ -169,9 +184,13 @@ Simply copying the project folder to another computer **will not work** without 
    - Node.js (v16 or higher)
    - Access to a MySQL database
 
-2. **Copy Project Files:**
-   - Copy the entire project folder to the new location
-   - Note the new absolute path (you'll need this for Cursor configuration)
+2. **Clone or Copy Project Files:**
+   ```bash
+   git clone https://github.com/binoy154/mysql-mcp.git
+   cd mysql-mcp
+   ```
+   - Note the absolute path where you cloned/copied the project
+   - You'll need this exact path for Cursor MCP configuration
 
 3. **Install Dependencies:**
    ```bash
