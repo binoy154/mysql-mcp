@@ -7,6 +7,18 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import mysql from "mysql2/promise";
 
+// =============================================================================
+// ENVIRONMENT PERMISSION CONFIGURATION
+// =============================================================================
+// Change these variables to easily control write permissions for each environment
+// Set to true to allow write operations, false to make read-only
+const ENVIRONMENT_WRITE_PERMISSIONS = {
+  local: true,           // Local development - always allow writes
+  staging: false,        // Staging - set to false for read-only, true for writes with confirmation
+  preproduction: false,  // Pre-production - set to false for read-only, true for writes with confirmation
+  production: false,     // Production - should always be false (read-only)
+} as const;
+
 // Database connection interface
 interface DatabaseConfig {
   host: string;
@@ -93,8 +105,8 @@ class MySQLMCPServer {
           database: process.env.MYSQL_LOCAL_DATABASE || process.env.MYSQL_DATABASE,
           multipleStatements: true,
         },
-        permissions: PermissionLevel.FULL_ACCESS,
-        description: "Local development database with full access",
+        permissions: ENVIRONMENT_WRITE_PERMISSIONS.local ? PermissionLevel.FULL_ACCESS : PermissionLevel.READ_ONLY,
+        description: ENVIRONMENT_WRITE_PERMISSIONS.local ? "Local development database with full access" : "Local development database - READ ONLY access",
         isActive: true
       },
       staging: {
@@ -108,8 +120,8 @@ class MySQLMCPServer {
           database: process.env.MYSQL_STAGING_DATABASE,
           multipleStatements: true,
         },
-        permissions: PermissionLevel.STAGING_WITH_CONFIRMATION,
-        description: "Staging database with confirmation for destructive operations",
+        permissions: ENVIRONMENT_WRITE_PERMISSIONS.staging ? PermissionLevel.STAGING_WITH_CONFIRMATION : PermissionLevel.READ_ONLY,
+        description: ENVIRONMENT_WRITE_PERMISSIONS.staging ? "Staging database with confirmation for destructive operations" : "Staging database - READ ONLY access",
         isActive: false
       },
       preproduction: {
@@ -123,8 +135,8 @@ class MySQLMCPServer {
           database: process.env.MYSQL_PREPRODUCTION_DATABASE,
           multipleStatements: true,
         },
-        permissions: PermissionLevel.STAGING_WITH_CONFIRMATION,
-        description: "Pre-production database with confirmation for destructive operations",
+        permissions: ENVIRONMENT_WRITE_PERMISSIONS.preproduction ? PermissionLevel.STAGING_WITH_CONFIRMATION : PermissionLevel.READ_ONLY,
+        description: ENVIRONMENT_WRITE_PERMISSIONS.preproduction ? "Pre-production database with confirmation for destructive operations" : "Pre-production database - READ ONLY access",
         isActive: false
       },
       production: {
@@ -138,8 +150,8 @@ class MySQLMCPServer {
           database: process.env.MYSQL_PRODUCTION_DATABASE,
           multipleStatements: true,
         },
-        permissions: PermissionLevel.READ_ONLY,
-        description: "Production slave database - READ ONLY access",
+        permissions: ENVIRONMENT_WRITE_PERMISSIONS.production ? PermissionLevel.STAGING_WITH_CONFIRMATION : PermissionLevel.READ_ONLY,
+        description: ENVIRONMENT_WRITE_PERMISSIONS.production ? "Production database with confirmation for destructive operations" : "Production database - READ ONLY access",
         isActive: false
       }
     };
@@ -855,8 +867,8 @@ class MySQLMCPServer {
   }
 
   private isProductionEnvironment(): boolean {
-    return this.currentEnvironment === 'production' || 
-           this.getCurrentEnvironmentConfig().permissions === PermissionLevel.READ_ONLY;
+    // Consider any environment with READ_ONLY permissions as production-like for protection
+    return this.getCurrentEnvironmentConfig().permissions === PermissionLevel.READ_ONLY;
   }
 
   private throwIfProduction(operation: string): void {

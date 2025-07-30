@@ -60,7 +60,7 @@ Before setting up this MySQL MCP server, ensure you have:
    
    **🔧 IMPORTANT: Update the file path below with your actual clone location!**
    
-   A single MCP server instance can switch between **local**, **staging** and **production** environments at runtime. Supply their credentials through environment variables:
+   A single MCP server instance can switch between **local**, **staging**, **preproduction** and **production** environments at runtime. The `local` environment allows full read/write access, while `staging`, `preproduction`, and `production` are configured as **read-only** for safety. Supply their credentials through environment variables:
 
    ```json
    {
@@ -99,7 +99,7 @@ Before setting up this MySQL MCP server, ensure you have:
    
    **⚠️ Critical:** Use forward slashes (`/`) even on Windows, and ensure the path points to where you actually cloned the repository.
 
-   **Why a slave?**  The production credentials should point to a *read-only slave* or replica to guarantee safety (the server enforces read-only at the code level too).
+   **Database Safety:** The `production` credentials should point to a *read-only slave* or replica to guarantee safety. Additionally, `staging` and `preproduction` environments are enforced as **read-only** at the code level to prevent accidental data modifications.
 
 ## Available Tools
 
@@ -107,7 +107,7 @@ Before setting up this MySQL MCP server, ensure you have:
 - **`connect_database`**: Connect with custom credentials
 - **`list_databases`**: Show all available databases
 - **`use_database`**: Switch to a specific database
-- **`switch_environment`**: Switch the active DB environment (`local`, `staging`, `production`)
+- **`switch_environment`**: Switch the active DB environment (`local`, `staging`, `preproduction`, `production`)
 
 ### Schema Tools
 - **`list_tables`**: List all tables in current database
@@ -122,13 +122,15 @@ Before setting up this MySQL MCP server, ensure you have:
 - **`delete_data`**: Delete records
 - **`execute_query`**: Execute any SQL query (use carefully)
 
-**Write operations & confirmation logic**
+**Write operations & permission levels**
 
-| Tool | Local | Staging | Production |
-|------|-------|---------|------------|
-| `insert_data`, `update_data`, `delete_data`, `execute_query` | Immediate | Requires `{ "confirm": true }` flag | **Blocked** |
+| Tool | Local | Staging | Pre-production | Production |
+|------|-------|---------|----------------|------------|
+| `insert_data`, `update_data`, `delete_data`, `execute_query` | ✅ Immediate | ❌ **READ-ONLY** | ❌ **READ-ONLY** | ❌ **READ-ONLY** |
 
-Example (staging):
+**Note:** Only the `local` environment allows write operations. All other environments (`staging`, `preproduction`, `production`) are configured as **read-only** for data safety and integrity.
+
+Example (local only):
 
 ```json
 {
@@ -136,8 +138,7 @@ Example (staging):
   "arguments": {
     "table": "users",
     "data": { "status": "active" },
-    "where": "id = 42",
-    "confirm": true
+    "where": "id = 42"
   }
 }
 ```
