@@ -160,7 +160,6 @@ class MySQLMCPServer {
   private initializeToolPermissions(): void {
     this.toolPermissions = [
       // Read-only operations
-      { name: "connect_database", category: ToolCategory.ADMINISTRATIVE },
       { name: "switch_environment", category: ToolCategory.ADMINISTRATIVE },
       { name: "list_databases", category: ToolCategory.READ_ONLY },
       { name: "use_database", category: ToolCategory.READ_ONLY },
@@ -168,7 +167,6 @@ class MySQLMCPServer {
       { name: "describe_table", category: ToolCategory.READ_ONLY },
       { name: "select_query", category: ToolCategory.READ_ONLY },
       { name: "get_table_indexes", category: ToolCategory.READ_ONLY },
-      { name: "get_foreign_keys", category: ToolCategory.READ_ONLY },
       { name: "get_database_schema", category: ToolCategory.READ_ONLY },
       { name: "analyze_relationships", category: ToolCategory.READ_ONLY },
       { name: "get_table_comments", category: ToolCategory.READ_ONLY },
@@ -247,21 +245,6 @@ class MySQLMCPServer {
               },
             },
             required: ["environment"],
-          },
-        },
-        {
-          name: "connect_database",
-          description: "Connect to a MySQL database with specified credentials",
-          inputSchema: {
-            type: "object",
-            properties: {
-              host: { type: "string", description: "Database host", default: "localhost" },
-              port: { type: "number", description: "Database port", default: 3306 },
-              user: { type: "string", description: "Database username" },
-              password: { type: "string", description: "Database password" },
-              database: { type: "string", description: "Database name (optional)" },
-            },
-            required: ["user", "password"],
           },
         },
         {
@@ -386,17 +369,6 @@ class MySQLMCPServer {
           },
         },
         {
-          name: "get_foreign_keys",
-          description: "Get foreign key relationships for a table",
-          inputSchema: {
-            type: "object",
-            properties: {
-              table: { type: "string", description: "Table name" },
-            },
-            required: ["table"],
-          },
-        },
-        {
           name: "get_database_schema",
           description: "DISABLED - This tool is disabled for large databases to prevent crashes",
           inputSchema: {
@@ -466,9 +438,6 @@ class MySQLMCPServer {
         switch (name) {
           case "switch_environment":
             return await this.switchEnvironment((args as any)?.environment);
-
-          case "connect_database":
-            return await this.connectDatabase(args);
             
           case "list_databases":
             return await this.listDatabases();
@@ -500,9 +469,6 @@ class MySQLMCPServer {
           case "get_table_indexes":
             return await this.getTableIndexes((args as any)?.table);
             
-          case "get_foreign_keys":
-            return await this.getForeignKeys((args as any)?.table);
-            
           case "get_database_schema":
             return await this.getDisabledToolResponse("get_database_schema");
             
@@ -528,30 +494,7 @@ class MySQLMCPServer {
     });
   }
 
-  private async connectDatabase(config: any) {
-    if (!this.isToolAllowed('connect_database')) {
-      return { error: "The 'connect_database' tool is not allowed in the current environment." };
-    }
-    
-    // This tool creates a temporary connection and does not switch the active environment.
-    try {
-      const tempConnection = await mysql.createConnection(config);
-      await tempConnection.ping();
-      const databases = await tempConnection.query("SHOW DATABASES");
-      await tempConnection.end();
-      return {
-        content: [
-          {
-            type: "text",
-            text: `✅ Successfully connected (and disconnected) from ${config.host}:${config.port}${config.database ? ` / ${config.database}` : ""}. Databases found: ${(databases[0] as any[]).length}.`,
-          },
-        ],
-        databases: databases[0],
-      };
-    } catch (error: any) {
-      return { error: `Failed to connect to the custom database: ${error.message}` };
-    }
-  }
+
 
   private async listDatabases() {
     const connection = await this.ensureConnection();
@@ -769,32 +712,7 @@ class MySQLMCPServer {
     };
   }
 
-  private async getForeignKeys(table: string) {
-    const connection = await this.ensureConnection();
-    const query = `
-      SELECT 
-        COLUMN_NAME,
-        CONSTRAINT_NAME,
-        REFERENCED_TABLE_NAME,
-        REFERENCED_COLUMN_NAME
-      FROM 
-        INFORMATION_SCHEMA.KEY_COLUMN_USAGE 
-      WHERE 
-        REFERENCED_TABLE_SCHEMA = DATABASE()
-        AND TABLE_NAME = ?
-    `;
-    
-    const [rows] = await connection.execute(query, [table]);
-    
-    return {
-      content: [
-        {
-          type: "text",
-          text: `Foreign keys for table '${table}':\n${JSON.stringify(rows, null, 2)}`,
-        },
-      ],
-    };
-  }
+
 
   private async getDisabledToolResponse(toolName: string) {
     return {
