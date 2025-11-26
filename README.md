@@ -9,6 +9,7 @@ A comprehensive MySQL Model Context Protocol (MCP) server that provides database
 - ✅ **Data Operations**: SELECT, INSERT, UPDATE, DELETE operations
 - ✅ **Advanced Features**: View indexes, foreign keys, execute custom queries
 - ✅ **Safety**: Built-in query limits and error handling
+- 🔒 **Production Security**: Automatic PII protection and audit logging (production environment only)
 
 ## Prerequisites
 
@@ -173,6 +174,33 @@ Use insert_data with:
 2. SELECT queries automatically include LIMIT 100 unless specified
 3. The server uses parameterized queries for data operations
 4. Ensure your MySQL user has appropriate permissions
+
+### 🔒 Production Security Features
+
+**Automatic PII Protection (Production Environment Only):**
+- **Sensitive Data Masking**: Columns containing PII (SIN, birth dates, credit cards, etc.) are automatically masked
+- **Audit Logging**: All production database access is logged for compliance
+- **Zero Impact on Development**: Local, staging, and preproduction environments work exactly as before
+- **Smart Detection**: Uses pattern matching to identify sensitive columns (sin, ssn, birth_date, etc.)
+
+**Environment Behavior:**
+- **Local/Staging/Preproduction**: Full data access (no filtering)
+- **Production**: Automatic sensitive data masking + audit logging
+
+**Example Output in Production:**
+```json
+{
+  "id": 1,
+  "name": "John Doe", 
+  "email": "jo***@example.com",
+  "sin": "12*8",
+  "birth_date": "19**-**-**"
+}
+```
+
+**Security Status Messages:**
+- 🔓 DEVELOPMENT MODE: No data filtering (full access)  
+- 🔒 PRODUCTION MODE: Sensitive data protection active
 
 ## Deployment to Another Computer
 

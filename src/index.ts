@@ -6,6 +6,7 @@ import {
   Tool,
 } from "@modelcontextprotocol/sdk/types.js";
 import mysql from "mysql2/promise";
+import { ProductionSecurityFilter } from "./security/productionSecurity.js";
 
 // =============================================================================
 // ENVIRONMENT PERMISSION CONFIGURATION
@@ -27,6 +28,8 @@ interface DatabaseConfig {
   password: string;
   database?: string;
   multipleStatements?: boolean;
+  timezone?: string;
+  dateStrings?: boolean;
 }
 
 // Environment configuration interfaces and types
@@ -71,6 +74,9 @@ class MySQLMCPServer {
   private currentEnvironment: string = "local";
   private environments!: EnvironmentSettings;
   private toolPermissions!: ToolPermission[];
+  
+  // Production-only security filter
+  private securityFilter!: ProductionSecurityFilter;
 
   constructor() {
     this.server = new Server(
@@ -85,6 +91,9 @@ class MySQLMCPServer {
     
     // Initialize tool permissions
     this.initializeToolPermissions();
+
+    // Initialize production-only security filter
+    this.securityFilter = new ProductionSecurityFilter(this.currentEnvironment);
 
     // Default configuration (can be overridden via environment variables or environment switching)
     this.config = this.environments[this.currentEnvironment].connection;
@@ -104,6 +113,8 @@ class MySQLMCPServer {
           password: process.env.MYSQL_LOCAL_PASSWORD || process.env.MYSQL_PASSWORD || "",
           database: process.env.MYSQL_LOCAL_DATABASE || process.env.MYSQL_DATABASE,
           multipleStatements: true,
+          timezone: 'local',
+          dateStrings: true,
         },
         permissions: ENVIRONMENT_WRITE_PERMISSIONS.local ? PermissionLevel.FULL_ACCESS : PermissionLevel.READ_ONLY,
         description: ENVIRONMENT_WRITE_PERMISSIONS.local ? "Local development database with full access" : "Local development database - READ ONLY access",
@@ -119,6 +130,8 @@ class MySQLMCPServer {
           password: process.env.MYSQL_STAGING_PASSWORD || "",
           database: process.env.MYSQL_STAGING_DATABASE,
           multipleStatements: true,
+          timezone: 'local',
+          dateStrings: true,
         },
         permissions: ENVIRONMENT_WRITE_PERMISSIONS.staging ? PermissionLevel.STAGING_WITH_CONFIRMATION : PermissionLevel.READ_ONLY,
         description: ENVIRONMENT_WRITE_PERMISSIONS.staging ? "Staging database with confirmation for destructive operations" : "Staging database - READ ONLY access",
@@ -134,6 +147,8 @@ class MySQLMCPServer {
           password: process.env.MYSQL_PREPRODUCTION_PASSWORD || "",
           database: process.env.MYSQL_PREPRODUCTION_DATABASE,
           multipleStatements: true,
+          timezone: 'local',
+          dateStrings: true,
         },
         permissions: ENVIRONMENT_WRITE_PERMISSIONS.preproduction ? PermissionLevel.STAGING_WITH_CONFIRMATION : PermissionLevel.READ_ONLY,
         description: ENVIRONMENT_WRITE_PERMISSIONS.preproduction ? "Pre-production database with confirmation for destructive operations" : "Pre-production database - READ ONLY access",
@@ -149,6 +164,8 @@ class MySQLMCPServer {
           password: process.env.MYSQL_PRODUCTION_PASSWORD || "",
           database: process.env.MYSQL_PRODUCTION_DATABASE,
           multipleStatements: true,
+          timezone: 'local',
+          dateStrings: true,
         },
         permissions: ENVIRONMENT_WRITE_PERMISSIONS.production ? PermissionLevel.STAGING_WITH_CONFIRMATION : PermissionLevel.READ_ONLY,
         description: ENVIRONMENT_WRITE_PERMISSIONS.production ? "Production database with confirmation for destructive operations" : "Production database - READ ONLY access",
@@ -578,11 +595,19 @@ class MySQLMCPServer {
       Extra: row.Extra,
     }));
 
+    // Apply production-only security filtering to schema
+    const filteredSchema = this.securityFilter.filterTableSchema(schema);
+    const sensitiveColumns = schema.filter(col => this.securityFilter.isSensitiveColumn(col.Field));
+    
+    const securityNote = this.currentEnvironment === 'production' && sensitiveColumns.length > 0
+      ? `\n\n⚠️ Note: ${sensitiveColumns.length} sensitive column(s) masked for security in production environment.`
+      : '';
+
     return {
       content: [
         {
           type: "text",
-          text: `Schema for table '${table}':\n${JSON.stringify(schema, null, 2)}`,
+          text: `Schema for table '${table}':\n${JSON.stringify(filteredSchema, null, 2)}${securityNote}`,
         },
       ],
     };
@@ -599,11 +624,19 @@ class MySQLMCPServer {
     
     const [rows] = await connection.query(finalQuery);
     
+    // Apply production-only security filtering
+    const filteredResults = this.securityFilter.filterResults(rows as any[]);
+    const sensitiveDataAccessed = this.securityFilter.wouldAccessSensitiveData(finalQuery);
+    
+    const securityNote = this.currentEnvironment === 'production' && sensitiveDataAccessed
+      ? '\n\n⚠️ Note: Sensitive data has been masked for security in production environment.'
+      : '';
+    
     return {
       content: [
         {
           type: "text",
-          text: `Query results:\n${JSON.stringify(rows, null, 2)}`,
+          text: `Query results:\n${JSON.stringify(filteredResults, null, 2)}${securityNote}`,
         },
       ],
     };
@@ -769,15 +802,20 @@ class MySQLMCPServer {
     this.config = this.environments[envName].connection;
     this.environments[envName].isActive = true;
 
+    // Update security filter for new environment
+    this.securityFilter = new ProductionSecurityFilter(this.currentEnvironment);
+
     // Ping the new connection to ensure it's alive
     await this.ensureConnection();
 
     const currentEnv = this.getCurrentEnvironmentConfig();
+    const securityStatus = this.securityFilter.getSecurityStatus();
+    
     return {
       content: [
         {
           type: "text",
-          text: `✅ Switched to ${currentEnv.displayName} environment (host: ${currentEnv.connection.host}).`,
+          text: `✅ Switched to ${currentEnv.displayName} environment (host: ${currentEnv.connection.host}).\n${securityStatus}`,
         },
       ],
       environment: currentEnv,
